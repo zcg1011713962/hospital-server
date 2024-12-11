@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hs.db.mapper.DoctorMapper">
+    <insert id="insertBatchDoctors" parameterType="java.util.List">
+        INSERT INTO doctor (user_id,real_name,department, position, biography, specialization, available_slots) VALUES
+        <foreach collection="doctors" item="doctor" separator=",">
+            (#{doctor.userId},#{doctor.realName},#{doctor.department}, #{doctor.position}, #{doctor.biography}, #{doctor.specialization}, #{doctor.availableSlots})
+        </foreach>
+    </insert>
+
+    <insert id="insertBatchSchedule" parameterType="java.util.List">
+        INSERT INTO schedule (doctor_id,work_date, start_time, end_time, max_appointments) VALUES
+        <foreach collection="schedules" item="schedule" separator=",">
+            (#{schedule.doctorId},#{schedule.workDate}, #{schedule.startTime}, #{schedule.endTime}, #{schedule.maxAppointments})
+        </foreach>
+    </insert>
+
+
+    <!-- 动态查询医生和排班信息 -->
+    <select id="selectDoctorBySchedule"  resultType="com.hs.db.entity.DoctorSchedule">
+        SELECT
+        d.doctor_id AS doctorId,
+        d.real_name AS doctorName,
+        d.department AS department,
+        d.position AS position,
+        d.biography AS biography,
+        d.specialization AS specialization,
+        s.start_time AS startTime,
+        s.end_time AS endTime,
+        s.max_appointments AS maxAppointments,
+        s.booked_appointments AS bookedAppointments
+        FROM
+        hospital.doctor d
+        LEFT JOIN
+        hospital.schedule s
+        ON
+        d.doctor_id = s.doctor_id
+        WHERE
+        1 = 1
+        <!-- 动态条件: 如果开始日期不为空 -->
+        <if test="param.startDate != null and param.startDate != ''">
+            AND <![CDATA[s.work_date >= #{param.startDate}]]>
+        </if>
+        <!-- 动态条件: 如果结束日期不为空 -->
+        <if test="param.endDate != null and param.endDate != ''">
+            AND <![CDATA[s.work_date <= #{param.endDate}]]>
+        </if>
+        <!-- 动态条件: 如果医生名称不为空 -->
+        <if test="param.doctorName != null and param.doctorName != ''">
+            AND d.real_name like CONCAT('%', #{param.doctorName}, '%')
+        </if>
+        <if test="param.department != null and param.department != ''">
+            AND d.department = #{param.department}
+        </if>
+    </select>
+</mapper>
+
+
